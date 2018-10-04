@@ -221,7 +221,7 @@ def constfn(val):
 def learn(*, network, env, total_timesteps, seed=None, nsteps=2048, ent_coef=0.0, lr=3e-4,
             vf_coef=0.5,  max_grad_norm=0.5, gamma=0.99, lam=0.95,
             log_interval=10, nminibatches=4, noptepochs=4, cliprange=0.2,
-            save_interval=0, load_path=None, **network_kwargs):
+            save_interval=50, load_path=None, **network_kwargs):
     '''
     Learn policy using PPO algorithm (https://arxiv.org/abs/1707.06347)
 
@@ -256,7 +256,7 @@ def learn(*, network, env, total_timesteps, seed=None, nsteps=2048, ent_coef=0.0
 
     lam: float                        advantage estimation discounting factor (lambda in the paper)
 
-    log_interval: int                 number of timesteps between logging events
+    log_interval: int                 number of updates between logging events
 
     nminibatches: int                 number of training minibatches per update. For recurrent policies,
                                       should be smaller or equal than number of environments run in parallel.
@@ -266,7 +266,7 @@ def learn(*, network, env, total_timesteps, seed=None, nsteps=2048, ent_coef=0.0
     cliprange: float or function      clipping range, constant or schedule function [0,1] -> R+ where 1 is beginning of the training
                                       and 0 is the end of the training
 
-    save_interval: int                number of timesteps between saving events
+    save_interval: int                number of updates between saving events
 
     load_path: str                    path to load the model from
 
@@ -303,8 +303,18 @@ def learn(*, network, env, total_timesteps, seed=None, nsteps=2048, ent_coef=0.0
                     nsteps=nsteps, ent_coef=ent_coef, vf_coef=vf_coef,
                     max_grad_norm=max_grad_norm)
     model = make_model()
+
     if load_path is not None:
+        print('Loading checkpoint from %s '%(load_path) )
+        # Resume training from previous checking point and time step
+        load_path_arr = load_path.split('/')
+        start_timestep = int(load_path_arr[-1])
+        # Loading model from dir
         model.load(load_path)
+    else:
+        start_timestep = 0
+
+
     # Instantiate the runner object
     runner = Runner(env=env, model=model, nsteps=nsteps, gamma=gamma, lam=lam)
 
@@ -314,7 +324,14 @@ def learn(*, network, env, total_timesteps, seed=None, nsteps=2048, ent_coef=0.0
     tfirststart = time.time()
 
     nupdates = total_timesteps//nbatch
-    for update in range(1, nupdates+1):
+
+    try:
+        assert nupdates>start_timestep or nupdates==0
+    except AssertionError:
+        print('Error! Starting step is greater than ending step.')
+        exit()
+
+    for update in range(1+start_timestep, nupdates+1):
         assert nbatch % nminibatches == 0
         # Start timer
         tstart = time.time()
@@ -380,6 +397,7 @@ def learn(*, network, env, total_timesteps, seed=None, nsteps=2048, ent_coef=0.0
                 logger.logkv(lossname, lossval)
             if MPI.COMM_WORLD.Get_rank() == 0:
                 logger.dumpkvs()
+
         if save_interval and (update % save_interval == 0 or update == 1) and logger.get_dir() and MPI.COMM_WORLD.Get_rank() == 0:
             checkdir = osp.join(logger.get_dir(), 'checkpoints')
             os.makedirs(checkdir, exist_ok=True)
