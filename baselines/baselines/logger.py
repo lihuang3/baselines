@@ -297,7 +297,7 @@ class Logger(object):
         self.name2val = defaultdict(float)  # values this iteration
         self.name2cnt = defaultdict(int)
         self.level = INFO
-        self.dir = dir
+        self.dir = '/home/cougarnet.uh.edu/lhuang28/openai/experiments/'
         self.output_formats = output_formats
 
     # Logging API, forwarded
@@ -348,8 +348,11 @@ def configure(dir=None, format_strs=None):
     if dir is None:
         dir = os.getenv('OPENAI_LOGDIR')
     if dir is None:
-        dir = osp.join(tempfile.gettempdir(),
-            datetime.datetime.now().strftime("openai-%Y-%m-%d-%H-%M-%S-%f"))
+        dir = osp.join('/home/cougarnet.uh.edu/lhuang28/openai/tmp/',
+                       datetime.datetime.now().strftime("openai-%Y-%m-%d-%H-%M-%S-%f"))
+        # dir = osp.join(tempfile.gettempdir(),
+        #     datetime.datetime.now().strftime("openai-%Y-%m-%d-%H-%M-%S-%f"))
+
     assert isinstance(dir, str)
     os.makedirs(dir, exist_ok=True)
 
@@ -362,6 +365,7 @@ def configure(dir=None, format_strs=None):
             rank = int(os.environ[varname])
     if rank > 0:
         log_suffix = "-rank%03i" % rank
+    log_suffix = log_suffix + datetime.datetime.now().strftime("-%Y-%m-%d-%H-%M-%S-%f")
 
     if format_strs is None:
         if rank == 0:
