@@ -326,7 +326,7 @@ def learn(*, network, env, total_timesteps, seed=None, nsteps=2048, ent_coef=0.0
     nupdates = total_timesteps//nbatch
 
     try:
-        assert nupdates>start_timestep
+        assert nupdates>start_timestep or nupdates==0
     except AssertionError:
         print('Error! Starting step is greater than ending step.')
         exit()
