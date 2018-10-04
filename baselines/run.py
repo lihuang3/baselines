@@ -16,7 +16,7 @@ from baselines.common.vec_env.vec_normalize import VecNormalize
 from baselines.common import atari_wrappers, retro_wrappers
 
 import os
-os.environ['OPENAI_LOGDIR']='/home/cougarnet.uh.edu/lhuang28/openai/tmp'
+os.environ['OPENAI_LOGDIR']='/home/cougarnet.uh.edu/lhuang28/baselines/tmp'
 os.environ['OPENAI_LOG_FORMAT']= 'stdout,log,csv,tensorboard'
 
 
