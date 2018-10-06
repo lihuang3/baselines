@@ -58,7 +58,6 @@ _game_envs['retro'] = {
 
 def train(args, extra_args):
     env_type, env_id = get_env_type(args.env)
-    print('env_type: {}'.format(env_type))
 
     total_timesteps = int(args.num_timesteps)
     seed = args.seed
@@ -97,6 +96,7 @@ def build_env(args):
 
     env_type, env_id = get_env_type(args.env)
 
+
     if env_type == 'atari':
         if alg == 'acer':
             env = make_vec_env(env_id, env_type, nenv, seed)
@@ -124,6 +124,10 @@ def build_env(args):
         env.seed(args.seed)
         env = bench.Monitor(env, logger.get_dir())
         env = retro_wrappers.wrap_deepmind_retro(env)
+
+    elif env_type == 'my_games':
+        frame_stack_size = 4
+        env = VecFrameStack(make_vec_env(env_id, env_type, nenv, seed), frame_stack_size)
 
     else:
        get_session(tf.ConfigProto(allow_soft_placement=True,
@@ -229,14 +233,23 @@ def main():
         def initialize_placeholders(nlstm=128,**kwargs):
             return np.zeros((args.num_env or 1, 2*nlstm)), np.zeros((1))
         state, dones = initialize_placeholders(**extra_args)
+
+        total_rewards = 0
+        total_steps = 0
         while True:
-            actions, _, state, _ = model.step(obs,S=state, M=dones)
+            actions, reward, state, _ = model.step(obs,S=state, M=dones)
             obs, _, done, _ = env.step(actions)
             env.render()
             done = done.any() if isinstance(done, np.ndarray) else done
-
+            total_rewards+=reward
+            total_steps+=1
+            print('steps = %d rewards = %d reward = %d done = %d '%(total_steps,total_rewards, reward, done), end='\r')
             if done:
                 obs = env.reset()
+                accumulated_rew = 0
+                total_steps = 0
+                print('\n')
+
 
         env.close()
 

@@ -15,6 +15,7 @@ from baselines.common.mpi_adam_optimizer import MpiAdamOptimizer
 from mpi4py import MPI
 from baselines.common.tf_util import initialize
 from baselines.common.mpi_util import sync_from_root
+import datetime
 
 class Model(object):
     """
@@ -220,8 +221,8 @@ def constfn(val):
 
 def learn(*, network, env, total_timesteps, eval_env = None, seed=None, nsteps=2048, ent_coef=0.0, lr=3e-4,
             vf_coef=0.5,  max_grad_norm=0.5, gamma=0.99, lam=0.95,
-            log_interval=10, nminibatches=4, noptepochs=4, cliprange=0.2,
-            save_interval=50, load_path=None, **network_kwargs):
+            log_interval=1, nminibatches=4, noptepochs=4, cliprange=0.08,
+            save_interval=20, load_path=None, **network_kwargs):
     '''
     Learn policy using PPO algorithm (https://arxiv.org/abs/1707.06347)
 
@@ -412,6 +413,10 @@ def learn(*, network, env, total_timesteps, eval_env = None, seed=None, nsteps=2
                 logger.logkv('eval_eplenmean', safemean([epinfo['l'] for epinfo in eval_epinfobuf]))
 
             logger.logkv('time_elapsed', tnow - tfirststart)
+            time_to_complete = float(tnow - tfirststart)/((update-start_timestep)*nbatch)*(total_timesteps-update*nbatch)
+
+            logger.logkv('ETC', str(datetime.timedelta(time_to_complete)))
+
             for (lossval, lossname) in zip(lossvals, model.loss_names):
                 logger.logkv(lossname, lossval)
             if MPI.COMM_WORLD.Get_rank() == 0:

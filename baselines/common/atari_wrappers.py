@@ -138,7 +138,14 @@ class WarpFrame(gym.ObservationWrapper):
             shape=(self.height, self.width, 1), dtype=np.uint8)
 
     def observation(self, frame):
-        frame = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+        try:
+            assert(np.shape(frame)[2]==3)
+            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+        except AssertionError:
+            frame = frame
+
+
+
         frame = cv2.resize(frame, (self.width, self.height), interpolation=cv2.INTER_AREA)
         return frame[:, :, None]
 

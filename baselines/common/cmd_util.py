@@ -17,7 +17,7 @@ from baselines.common.atari_wrappers import make_atari, wrap_deepmind
 from baselines.common.vec_env.subproc_vec_env import SubprocVecEnv
 from baselines.common.vec_env.dummy_vec_env import DummyVecEnv
 from baselines.common.retro_wrappers import RewardScaler
-
+from baselines.common.atari_wrappers import *
 
 def make_vec_env(env_id, env_type, num_env, seed, wrapper_kwargs=None, start_index=0, reward_scale=1.0):
     """
@@ -28,6 +28,7 @@ def make_vec_env(env_id, env_type, num_env, seed, wrapper_kwargs=None, start_ind
     def make_env(rank): # pylint: disable=C0111
         def _thunk():
             env = make_atari(env_id) if env_type == 'atari' else gym.make(env_id)
+
             env.seed(seed + 10000*mpi_rank + rank if seed is not None else None)
             env = Monitor(env,
                           logger.get_dir() and os.path.join(logger.get_dir(), str(mpi_rank) + '.' + str(rank)),
@@ -35,6 +36,10 @@ def make_vec_env(env_id, env_type, num_env, seed, wrapper_kwargs=None, start_ind
 
             if env_type == 'atari': return wrap_deepmind(env, **wrapper_kwargs)
             elif reward_scale != 1: return RewardScaler(env, reward_scale)
+            elif env_type == 'my_games':
+                env = MaxAndSkipEnv(env, skip=4)
+                env = WarpFrame(env)
+                return env
             else: return env
         return _thunk
     set_global_seeds(seed)
