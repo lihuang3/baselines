@@ -246,7 +246,7 @@ def main():
             print('steps = %d rewards = %d reward = %d done = %d '%(total_steps,total_rewards, reward, done), end='\r')
             if done:
                 obs = env.reset()
-                accumulated_rew = 0
+                total_rewards = 0
                 total_steps = 0
                 print('\n')
 

@@ -219,10 +219,10 @@ def constfn(val):
         return val
     return f
 
-def learn(*, network, env, total_timesteps, eval_env = None, seed=None, nsteps=2048, ent_coef=0.0, lr=3e-4,
+def learn(*, network, env, total_timesteps, eval_env = None, seed=None, nsteps=2048, ent_coef=0.0, lr=1e-4,
             vf_coef=0.5,  max_grad_norm=0.5, gamma=0.99, lam=0.95,
-            log_interval=1, nminibatches=4, noptepochs=4, cliprange=0.08,
-            save_interval=20, load_path=None, **network_kwargs):
+            log_interval=1, nminibatches=8, noptepochs=4, cliprange=0.1,
+            save_interval=1, load_path=None, **network_kwargs):
     '''
     Learn policy using PPO algorithm (https://arxiv.org/abs/1707.06347)
 
@@ -338,6 +338,7 @@ def learn(*, network, env, total_timesteps, eval_env = None, seed=None, nsteps=2
         print('Error! Starting step is greater than ending step.')
         exit()
 
+
     for update in range(1+start_timestep, nupdates+1):
         assert nbatch % nminibatches == 0
         # Start timer
@@ -413,9 +414,10 @@ def learn(*, network, env, total_timesteps, eval_env = None, seed=None, nsteps=2
                 logger.logkv('eval_eplenmean', safemean([epinfo['l'] for epinfo in eval_epinfobuf]))
 
             logger.logkv('time_elapsed', tnow - tfirststart)
-            time_to_complete = float(tnow - tfirststart)/((update-start_timestep)*nbatch)*(total_timesteps-update*nbatch)
+            cumul_time = float(tnow - tfirststart)
 
-            logger.logkv('ETC', str(datetime.timedelta(time_to_complete)))
+            time_to_complete = cumul_time*(nupdates-update)/float(update-start_timestep)
+            print('Expected time to complete:'+str(datetime.timedelta(0,int(time_to_complete) )))
 
             for (lossval, lossname) in zip(lossvals, model.loss_names):
                 logger.logkv(lossname, lossval)
