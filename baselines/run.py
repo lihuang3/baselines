@@ -5,6 +5,7 @@ import gym
 from collections import defaultdict
 import tensorflow as tf
 import numpy as np
+import pdb, time
 
 from baselines.common.vec_env.vec_frame_stack import VecFrameStack
 from baselines.common.cmd_util import common_arg_parser, parse_unknown_args, make_vec_env
@@ -66,6 +67,7 @@ def train(args, extra_args):
     alg_kwargs = get_learn_function_defaults(args.alg, env_type)
     alg_kwargs.update(extra_args)
 
+    # < baselines.common.vec_env.vec_frame_stack.VecFrameStack object>
     env = build_env(args)
 
     if args.network:
@@ -76,6 +78,7 @@ def train(args, extra_args):
 
     print('Training {} on {}:{} with arguments \n{}'.format(args.alg, env_type, env_id, alg_kwargs))
 
+    # < baselines.ppo2.ppo2.Model object>
     model = learn(
         env=env,
         seed=seed,
@@ -237,19 +240,20 @@ def main():
         total_rewards = 0
         total_steps = 0
         while True:
-            actions, reward, state, _ = model.step(obs,S=state, M=dones)
-            obs, _, done, _ = env.step(actions)
+            actions, reward, state, _ = model.step(obs,S=state, M=dones, play = True)
+            obs, reward, done, _ = env.step(actions)
             env.render()
             done = done.any() if isinstance(done, np.ndarray) else done
             total_rewards+=reward
-            total_steps+=1
+            total_steps+=4
             print('steps = %d rewards = %d reward = %d done = %d '%(total_steps,total_rewards, reward, done), end='\r')
+
             if done:
                 obs = env.reset()
                 total_rewards = 0
                 total_steps = 0
                 print('\n')
-
+                time.sleep(2)
 
         env.close()
 
