@@ -144,8 +144,6 @@ class WarpFrame(gym.ObservationWrapper):
         except AssertionError:
             frame = frame
 
-
-
         frame = cv2.resize(frame, (self.width, self.height), interpolation=cv2.INTER_AREA)
         return frame[:, :, None]
 
