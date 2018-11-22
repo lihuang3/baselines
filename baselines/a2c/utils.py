@@ -62,6 +62,14 @@ def fc(x, scope, nh, *, init_scale=1.0, init_bias=0.0):
         b = tf.get_variable("b", [nh], initializer=tf.constant_initializer(init_bias))
         return tf.matmul(x, w)+b
 
+
+def flatten_two_dims(x):
+    return tf.reshape(x, [-1] + x.get_shape().as_list()[2:])
+
+def unflatten_first_dim(x, sh):
+    return tf.reshape(x, [sh[0], sh[1]] + x.get_shape().as_list()[1:])
+
+
 def batch_to_seq(h, nbatch, nsteps, flat=False):
     if flat:
         h = tf.reshape(h, [nbatch, nsteps])
@@ -69,7 +77,7 @@ def batch_to_seq(h, nbatch, nsteps, flat=False):
         h = tf.reshape(h, [nbatch, nsteps, -1])
     return [tf.squeeze(v, [1]) for v in tf.split(axis=1, num_or_size_splits=nsteps, value=h)]
 
-def seq_to_batch(h, flat = False):
+def seq_to_batch(hf, flat = False):
     shape = h[0].get_shape().as_list()
     if not flat:
         assert(len(shape) > 1)
