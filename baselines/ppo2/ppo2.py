@@ -158,6 +158,7 @@ class Runner(AbstractEnvRunner):
         self.lam = lam
         # Discount rate
         self.gamma = gamma
+
         ext_rew_coeff = 1.0
         int_rew_coeff = 0.05
         self.reward_fun = lambda ext_rew, int_rew: ext_rew_coeff * np.clip(ext_rew, -1., 1.) + int_rew_coeff * int_rew
@@ -197,12 +198,27 @@ class Runner(AbstractEnvRunner):
 
         def calculate_loss(ob, last_ob, acs):
             return self.model.eval_loss(ob, last_ob, acs)
+        
+        # calculate_reward in batches
+        # 0 to batch_size with batch_train_size step
+        int_rew = []
+        sh = np.shape(mb_obs)        
+        batch_size = self.nsteps
+        while batch_size>2560//sh[1]:
+            batch_size //= 2
 
-        # calculate_reward
-        int_rew = calculate_loss(ob=mb_obs,
-                                 last_ob= np.expand_dims(self.obs,axis=0),
-                                  acs=mb_actions)
+        inds = np.arange(self.nsteps)
+        for start in range(0, self.nsteps, batch_size):
+            end = start + batch_size        
+            mbinds = inds[start:end]
+            obs_batch = mb_obs[mbinds,:]
+            acs_batch = mb_actions[mbinds,:]
+            last_obs = mb_obs[end] if end<sh[0] else self.obs
+            int_rew.extend(calculate_loss(ob=obs_batch,
+                                 last_ob= np.expand_dims(last_obs,axis=0),
+                                  acs=acs_batch))
 
+        int_rew = np.asarray(int_rew)
         mb_totalrews = self.reward_fun(int_rew=int_rew, ext_rew=mb_rewards)
 
         self.normrew = 0
