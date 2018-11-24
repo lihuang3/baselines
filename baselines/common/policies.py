@@ -165,7 +165,7 @@ def build_policy(env, policy_network, value_network=None,  normalize_observation
             with tf.variable_scope('vf', reuse=tf.AUTO_REUSE):
                 vf_latent, _ = _v_net(encoded_x)
 
-        policy = PolicyWithValueBeta(
+        policy = PolicyWithValue(
             env=env,
             observations=X,
             latent=policy_latent,
@@ -298,25 +298,6 @@ class PolicyWithValueBeta(object):
             state = None
         return a, v, state, neglogp
 
-        # def get_loss(self, env):
-        #     def flatten_two_dims(x):
-        #         return tf.reshape(x, [-1] + x.get_shape().as_list()[2:])
-        #
-        #     def unflatten_first_dim(x, sh):
-        #         return tf.reshape(x, [sh[0], sh[1]] + x.get_shape().as_list()[1:])
-        #
-        #     activ = tf.nn.relu
-        #     with tf.variable_scope("feature_extractor"):
-        #         x = tf.concat([self.features, self.next_features], 2)
-        #         sh = tf.shape(x)
-        #         x = flatten_two_dims(x)
-        #         x = activ(fc(x, 'fc1',nh=128, init_scale=np.sqrt(2)))
-        #         x = fc(x, 'fc2',nh=env.action_space.n)
-        #         param = unflatten_first_dim(x, sh)
-        #         idfpd = self.pdtype.pdfromflat(param)
-        #
-        #         return idfpd.neglogp(self.ac)
-
     def get_loss(self, env):
 
         acs = tf.one_hot(self.acs, env.action_space.n, axis=2)
@@ -395,18 +376,14 @@ class PolicyWithValueBeta(object):
         -------
         cnn features
         """
-
         network_type = 'custom_cnn'
-
         ob_space = env.observation_space
-
         X = obs
 
         x_has_timesteps = (X.get_shape().ndims == 5)
         if x_has_timesteps:
             sh = tf.shape(X)
             X = flatten_two_dims(X)
-
 
         extra_tensors = {}
 
@@ -420,13 +397,11 @@ class PolicyWithValueBeta(object):
 
         with tf.variable_scope("feature_extractor", reuse=reuse):
             feature_network = get_network_builder(network_type)(**{})
-
             feature_tensor, recurrent_tensors = feature_network(encoded_x)
 
         if x_has_timesteps:
             feature_tensor = unflatten_first_dim(feature_tensor, sh)
         return feature_tensor
-
 
     def value(self, ob, *args, **kwargs):
         """

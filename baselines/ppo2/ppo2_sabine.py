@@ -220,9 +220,9 @@ def constfn(val):
     return f
 
 # learn() fcn returnls class Model()
-def learn(*, network, env, total_timesteps, eval_env = None, seed=None, nsteps=2048, ent_coef=0.1, lr=1e-5,
+def learn(*, network, env, total_timesteps, eval_env = None, seed=None, nsteps=2048, ent_coef=0.1, lr=2e-4,
             vf_coef=0.5,  max_grad_norm=0.5, gamma=0.99, lam=0.95,
-            log_interval=1, nminibatches=8, noptepochs=4, cliprange=0.12,
+            log_interval=1, nminibatches=8, noptepochs=4, cliprange=0.2,
             save_interval=10, load_path=None, **network_kwargs):
     '''
     Learn policy using PPO algorithm (https://arxiv.org/abs/1707.06347)
