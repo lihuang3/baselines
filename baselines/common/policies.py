@@ -165,7 +165,7 @@ def build_policy(env, policy_network, value_network=None,  normalize_observation
             with tf.variable_scope('vf', reuse=tf.AUTO_REUSE):
                 vf_latent, _ = _v_net(encoded_x)
 
-        policy = PolicyWithValue(
+        policy = PolicyWithValueBeta(
             env=env,
             observations=X,
             latent=policy_latent,
