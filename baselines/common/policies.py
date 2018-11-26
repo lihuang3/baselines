@@ -331,7 +331,7 @@ class PolicyWithValueBeta(object):
     
 
         with tf.variable_scope("feature_extractor_resloss"):
-            hidsize = 128
+            hidsize = 256
             x = flatten_two_dims(self.features)
             x = tf.layers.dense(add_ac(x), hidsize, activation=tf.nn.leaky_relu)
     
@@ -340,7 +340,7 @@ class PolicyWithValueBeta(object):
                 res = tf.layers.dense(add_ac(res), hidsize, activation=None)
                 return x + res
     
-            for _ in range(2):
+            for _ in range(4):
                 x = residual(x)
             n_out_features = self.next_features.get_shape()[-1].value
             x = tf.layers.dense(add_ac(x), n_out_features, activation=None)
