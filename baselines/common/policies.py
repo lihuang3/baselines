@@ -253,7 +253,7 @@ class PolicyWithValueBeta(object):
             self.next_features = tf.concat([self.features[1:,:], self.last_features], 0)
 
 
-        self.loss = self.get_loss(env)
+        self.loss = self.get_resloss(env)
 
 
     def eval_loss(self, ob, last_ob, acs):
@@ -306,7 +306,7 @@ class PolicyWithValueBeta(object):
 
         def add_ac(x):
             return tf.concat([x, acs], axis=-1)
-        scope ="feature_extractor"
+        scope ="feature_extractor" + "_loss"
         with tf.variable_scope(scope):
             hidsize = 256
             activ = tf.nn.relu
@@ -320,32 +320,33 @@ class PolicyWithValueBeta(object):
 
         return tf.reduce_mean((x - tf.stop_gradient(self.next_features)) ** 2, -1)
 
-    # def get_loss(self, env):
-    #
-    #     acs = tf.one_hot(self.acs, env.action_space.n, axis=2)
-    #     sh = tf.shape(acs)
-    #     acs = flatten_two_dims(acs)
-    #
-    #     def add_ac(x):
-    #         return tf.concat([x, acs], axis=-1)
-    #
-    #     with tf.variable_scope("feature_extractor"):
-    #         hidsize = 128
-    #         x = flatten_two_dims(self.features)
-    #         x = tf.layers.dense(add_ac(x), hidsize, activation=tf.nn.leaky_relu)
-    #
-    #         def residual(x):
-    #             res = tf.layers.dense(add_ac(x), hidsize, activation=tf.nn.leaky_relu)
-    #             res = tf.layers.dense(add_ac(res), hidsize, activation=None)
-    #             return x + res
-    #
-    #         for _ in range(2):
-    #             x = residual(x)
-    #         n_out_features = self.next_features.get_shape()[-1].value
-    #         x = tf.layers.dense(add_ac(x), n_out_features, activation=None)
-    #         x = unflatten_first_dim(x, sh)
-    #     return tf.reduce_mean((x - tf.stop_gradient(self.next_features)) ** 2, -1)
-    #
+    def get_resloss(self, env):
+    
+        acs = tf.one_hot(self.acs, env.action_space.n, axis=2)
+        sh = tf.shape(acs)
+        acs = flatten_two_dims(acs)
+    
+        def add_ac(x):
+            return tf.concat([x, acs], axis=-1)
+    
+
+        with tf.variable_scope("feature_extractor_resloss"):
+            hidsize = 128
+            x = flatten_two_dims(self.features)
+            x = tf.layers.dense(add_ac(x), hidsize, activation=tf.nn.leaky_relu)
+    
+            def residual(x):
+                res = tf.layers.dense(add_ac(x), hidsize, activation=tf.nn.leaky_relu)
+                res = tf.layers.dense(add_ac(res), hidsize, activation=None)
+                return x + res
+    
+            for _ in range(2):
+                x = residual(x)
+            n_out_features = self.next_features.get_shape()[-1].value
+            x = tf.layers.dense(add_ac(x), n_out_features, activation=None)
+            x = unflatten_first_dim(x, sh)
+        return tf.reduce_mean((x - tf.stop_gradient(self.next_features)) ** 2, -1)
+    
     def get_invloss(self, env):
         activ = tf.nn.relu
         hidsize = 128
