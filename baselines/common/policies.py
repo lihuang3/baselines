@@ -306,7 +306,7 @@ class PolicyWithValueBeta(object):
 
         def add_ac(x):
             return tf.concat([x, acs], axis=-1)
-        scope ="feature_extractor_loss"
+        scope ="feature_extractor"
         with tf.variable_scope(scope):
             hidsize = 256
             activ = tf.nn.relu
@@ -329,7 +329,7 @@ class PolicyWithValueBeta(object):
     #     def add_ac(x):
     #         return tf.concat([x, acs], axis=-1)
     #
-    #     with tf.variable_scope("feature_extractor_loss"):
+    #     with tf.variable_scope("feature_extractor"):
     #         hidsize = 128
     #         x = flatten_two_dims(self.features)
     #         x = tf.layers.dense(add_ac(x), hidsize, activation=tf.nn.leaky_relu)
@@ -349,7 +349,7 @@ class PolicyWithValueBeta(object):
     def get_invloss(self, env):
         activ = tf.nn.relu
         hidsize = 128
-        with tf.variable_scope("feature_extractor_invloss"):
+        with tf.variable_scope("feature_extractor"):
             x = tf.concat([self.features, self.next_features], 2)
             sh = tf.shape(x)
             x = flatten_two_dims(x)

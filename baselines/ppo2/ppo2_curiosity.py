@@ -161,7 +161,7 @@ class Runner(AbstractEnvRunner):
 
         ext_rew_coeff = 1.0
         int_rew_coeff = 0.00
-        self.reward_fun = lambda ext_rew, int_rew: ext_rew_coeff * np.clip(ext_rew, -1., 1.) + int_rew_coeff * int_rew
+        self.reward_fun = lambda ext_rew, int_rew: ext_rew_coeff * ext_rew + int_rew_coeff * int_rew
 
     def run(self):
         # Here, we init the lists that will contain the mb of experiences
