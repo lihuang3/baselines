@@ -204,7 +204,7 @@ class Runner(AbstractEnvRunner):
         int_rew = []
         sh = np.shape(mb_obs)        
         batch_size = self.nsteps
-        while batch_size>2560//sh[1]:
+        while batch_size>10240//sh[1]:
             batch_size //= 2
 
         inds = np.arange(self.nsteps)
