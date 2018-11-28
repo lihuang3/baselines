@@ -160,7 +160,11 @@ class Runner(AbstractEnvRunner):
         self.gamma = gamma
 
         ext_rew_coeff = 1.0
+<<<<<<< HEAD
         int_rew_coeff = 0.02
+=======
+        int_rew_coeff = 0.1
+>>>>>>> origin/master
         self.reward_fun = lambda ext_rew, int_rew: ext_rew_coeff * ext_rew + int_rew_coeff * int_rew
 
     def run(self):

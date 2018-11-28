@@ -160,7 +160,11 @@ class Runner(AbstractEnvRunner):
         self.gamma = gamma
 
         ext_rew_coeff = 1.0
+<<<<<<< HEAD
         int_rew_coeff = 0.00
+=======
+        int_rew_coeff = 0.1
+>>>>>>> origin/master
         self.reward_fun = lambda ext_rew, int_rew: ext_rew_coeff * ext_rew + int_rew_coeff * int_rew
 
     def run(self):
@@ -204,7 +208,11 @@ class Runner(AbstractEnvRunner):
         int_rew = []
         sh = np.shape(mb_obs)        
         batch_size = self.nsteps
+<<<<<<< HEAD
         while batch_size>2560//sh[1]:
+=======
+        while batch_size>10240//sh[1]:
+>>>>>>> origin/master
             batch_size //= 2
 
         inds = np.arange(self.nsteps)
@@ -259,7 +267,11 @@ def constfn(val):
     return f
 
 # learn() fcn returnls class Model()
+<<<<<<< HEAD
 def learn(*, network, env, total_timesteps, eval_env = None, seed=None, nsteps=2048, ent_coef=0.01, lr=1e-4,
+=======
+def learn(*, network, env, total_timesteps, eval_env = None, seed=None, nsteps=2048, ent_coef=0.01, lr=2e-4,
+>>>>>>> origin/master
             vf_coef=0.5,  max_grad_norm=0.5, gamma=0.99, lam=0.95,
             log_interval=1, nminibatches=8, noptepochs=4, cliprange=0.2,
             save_interval=10, load_path=None, **network_kwargs):
