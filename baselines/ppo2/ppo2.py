@@ -131,6 +131,7 @@ class Model(object):
         self.train_model = train_model
         self.act_model = act_model
         self.step = act_model.step
+        self.eval_loss = act_model.eval_loss
         self.value = act_model.value
         self.initial_state = act_model.initial_state
 
@@ -158,6 +159,10 @@ class Runner(AbstractEnvRunner):
         # Discount rate
         self.gamma = gamma
 
+        ext_rew_coeff = 1.0
+        int_rew_coeff = 0.1
+        self.reward_fun = lambda ext_rew, int_rew: ext_rew_coeff * ext_rew + int_rew_coeff * int_rew
+
     def run(self):
         # Here, we init the lists that will contain the mb of experiences
         mb_obs, mb_rewards, mb_actions, mb_values, mb_dones, mb_neglogpacs = [],[],[],[],[],[]
@@ -181,6 +186,7 @@ class Runner(AbstractEnvRunner):
                 maybeepinfo = info.get('episode')
                 if maybeepinfo: epinfos.append(maybeepinfo)
             mb_rewards.append(rewards)
+
         #batch of steps to batch of rollouts
         mb_obs = np.asarray(mb_obs, dtype=self.obs.dtype)
         mb_rewards = np.asarray(mb_rewards, dtype=np.float32)
@@ -189,6 +195,37 @@ class Runner(AbstractEnvRunner):
         mb_neglogpacs = np.asarray(mb_neglogpacs, dtype=np.float32)
         mb_dones = np.asarray(mb_dones, dtype=np.bool)
         last_values = self.model.value(self.obs, S=self.states, M=self.dones)
+
+        def calculate_loss(ob, last_ob, acs):
+            return self.model.eval_loss(ob, last_ob, acs)
+        
+        # calculate_reward in batches
+        # 0 to batch_size with batch_train_size step
+        int_rew = []
+        sh = np.shape(mb_obs)        
+        batch_size = self.nsteps
+        while batch_size>2560//sh[1]:
+            batch_size //= 2
+
+        inds = np.arange(self.nsteps)
+        for start in range(0, self.nsteps, batch_size):
+            end = start + batch_size        
+            mbinds = inds[start:end]
+            obs_batch = mb_obs[mbinds,:]
+            acs_batch = mb_actions[mbinds,:]
+            last_obs = mb_obs[end] if end<sh[0] else self.obs
+            int_rew.extend(calculate_loss(ob=obs_batch,
+                                 last_ob= np.expand_dims(last_obs,axis=0),
+                                  acs=acs_batch))
+
+        int_rew = np.asarray(int_rew)
+        mb_totalrews = self.reward_fun(int_rew=int_rew, ext_rew=mb_rewards)
+
+        self.normrew = 0
+
+
+        # calculate advantages
+        # --> cppo_agent.py#L122
 
         # discount/bootstrap off value fn
         mb_returns = np.zeros_like(mb_rewards)
@@ -201,10 +238,12 @@ class Runner(AbstractEnvRunner):
             else:
                 nextnonterminal = 1.0 - mb_dones[t+1]
                 nextvalues = mb_values[t+1]
-            delta = mb_rewards[t] + self.gamma * nextvalues * nextnonterminal - mb_values[t]
+            # delta = mb_rewards[t] + self.gamma * nextvalues * nextnonterminal - mb_values[t]
+            delta = mb_totalrews[t] + self.gamma * nextvalues * nextnonterminal - mb_values[t]
+
             mb_advs[t] = lastgaelam = delta + self.gamma * self.lam * nextnonterminal * lastgaelam
         mb_returns = mb_advs + mb_values
-        return (*map(sf01, (mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs)),
+        return (*map(sf01, (mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs, mb_totalrews, int_rew)),
             mb_states, epinfos)
 # obs, returns, masks, actions, values, neglogpacs, states = runner.run()
 def sf01(arr):
@@ -307,7 +346,7 @@ def learn(*, network, env, total_timesteps, eval_env = None, seed=None, nsteps=2
     model = make_model()
 
     if load_path is not None:
-        print('Loading checkpoint from %s '%(load_path) )
+        print('Loading checkpoint from %s ' %(load_path) )
         # Resume training from previous checking point and time step
         load_path_arr = load_path.split('/')
         start_timestep = int(load_path_arr[-1])
@@ -350,10 +389,10 @@ def learn(*, network, env, total_timesteps, eval_env = None, seed=None, nsteps=2
         # Calculate the cliprange
         cliprangenow = cliprange(frac)
         # Get minibatch
-        obs, returns, masks, actions, values, neglogpacs, states, epinfos = runner.run() #pylint: disable=E0632
+        obs, returns, masks, actions, values, neglogpacs, totalrews, int_rews, states, epinfos = runner.run() #pylint: disable=E0632
 
         if eval_env is not None:
-            eval_obs, eval_returns, eval_masks, eval_actions, eval_values, eval_neglogpacs, eval_states, eval_epinfos = eval_runner.run()  # pylint: disable=E0632
+            eval_obs, eval_returns, eval_masks, eval_actions, eval_values, eval_neglogpacs, totalrews, int_rews, eval_states, eval_epinfos = eval_runner.run()  # pylint: disable=E0632
 
 
         epinfobuf.extend(epinfos)
@@ -409,6 +448,8 @@ def learn(*, network, env, total_timesteps, eval_env = None, seed=None, nsteps=2
             logger.logkv("explained_variance", float(ev))
             logger.logkv('eprewmean', safemean([epinfo['r'] for epinfo in epinfobuf]))
             logger.logkv('eplenmean', safemean([epinfo['l'] for epinfo in epinfobuf]))
+            logger.logkv('eptotalrewmean', safemean(totalrews))
+            logger.logkv('epintrewmean', safemean(int_rews))
 
             if eval_env is not None:
                 logger.logkv('eval_eprewmean', safemean([epinfo['r'] for epinfo in eval_epinfobuf]))
