@@ -91,6 +91,21 @@ def custom_cnn(**conv_kwargs):
         return activ(fc(h3, 'fc1', nh=128, init_scale=np.sqrt(2))), None
     return network_fn
 
+@register("small_convnet")
+def small_convnet(**conv_kwargs):
+    def network_fn(x):
+        batchnorm=False
+        layernormalize=False
+        feat_dim = 512
+        activ = tf.nn.relu
+        bn = tf.layers.batch_normalization if batchnorm else lambda x: x
+        x = bn(tf.layers.conv2d(x, filters=32, kernel_size=8, strides=(4, 4), activation=activ))
+        x = bn(tf.layers.conv2d(x, filters=64, kernel_size=4, strides=(2, 2), activation=activ))
+        x = bn(tf.layers.conv2d(x, filters=64, kernel_size=3, strides=(1, 1), activation=activ))
+        x = tf.reshape(x, (-1, np.prod(x.get_shape().as_list()[1:])))
+        x = bn(fc(x, units=feat_dim, activation=None))                    
+        return x, None
+    return network_fn
 
 @register("lstm")
 def lstm(nlstm=128, layer_norm=False):
